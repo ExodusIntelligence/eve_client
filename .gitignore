@@ -1,0 +1,5 @@
+dist
+dist/*
+.python-version
+poetry.lock
+.vscode
