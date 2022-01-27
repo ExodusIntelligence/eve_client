@@ -1,20 +1,11 @@
-# from msilib.schema import Class
-from datetime import date, datetime, timedelta
-import email
-from multiprocessing.sharedctypes import Value
+import datetime
 import string
 import unittest
-from json import JSONDecodeError
-from multiprocessing.connection import Client
-from base64 import b64decode, b64encode
-
 from unittest.mock import patch
-from click import password_option
+
 import requests
 import requests_mock
-from black import json, re
 
-import vms_client
 from vms_client import __version__, vms
 
 
@@ -56,7 +47,7 @@ class TestVMSClient(unittest.TestCase):
         )
 
     def test_version(self):
-        assert __version__ == "0.1.3"
+        self.assertEqual(__version__, "0.1.3")
 
     def testClassValidArguments(self):
         self.assertTrue(vms.verify_email("test00@test.com"))
@@ -102,7 +93,8 @@ class TestVMSClient(unittest.TestCase):
         reset = 1
         response = vms.Client.handle_reset_option(self, reset)
         self.assertGreaterEqual(
-            datetime.utcnow() - timedelta(days=reset), response
+            datetime.datetime.now(),
+            response,
         )
 
         # Test Reset None
@@ -134,11 +126,10 @@ class TestVMSClient(unittest.TestCase):
 
     @patch(
         "vms_client.vms.Client.handle_reset_option",
-        return_value=datetime.now(),
+        return_value=datetime.datetime.now(),
     )
     @requests_mock.Mocker()
     def test_get_recent_vulns(self, mock_handled_reset_option, mock_session):
-        reset = 1
         self.handle_reset_option = mock_handled_reset_option
         mock_session.register_uri(
             "GET",
@@ -155,7 +146,7 @@ class TestVMSClient(unittest.TestCase):
     )
     @patch(
         "vms_client.vms.Client.handle_reset_option",
-        return_value=datetime.now(),
+        return_value=datetime.datetime.now(),
     )
     @requests_mock.Mocker()
     def test_get_recent_reports(
@@ -221,8 +212,6 @@ class TestVMSClient(unittest.TestCase):
             f"{self.url}vpx-api/v1/report/{identifier}",
             json={"data": {}},
         )
-
-        bronco_public_key = self.get_bronco_public_key
 
         response = vms.Client.get_report(self, identifier)
 

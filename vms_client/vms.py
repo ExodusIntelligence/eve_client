@@ -1,10 +1,8 @@
-from ast import Raise
 from base64 import b64decode, b64encode
 from datetime import datetime, timedelta
 import json
 import sys
 import os
-from attrs import exceptions
 
 import dateutil.parser
 import nacl.public
@@ -15,6 +13,16 @@ import re
 
 
 def verify_email(email):
+    """Function verify email has right format
+
+    Args:
+        email: email address.
+
+    Raises:
+        ValueError
+    Returns:
+        bool: True
+    """
     regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
     if type(email) is not str:
         raise ValueError("Invalid email.")

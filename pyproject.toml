@@ -27,6 +27,23 @@ requests-mock = "^1.9.3"
 
 [tool.black]
 line-length = 79
+exclude = '''
+/(
+    \.git
+  | \.mypy_cache
+  | \.tox
+  | venv
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+# make it compatible with black
+profile = "black" 
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
