@@ -1,14 +1,26 @@
+from ast import Raise
 from base64 import b64decode, b64encode
 from datetime import datetime, timedelta
 import json
 import sys
 import os
+from attrs import exceptions
 
 import dateutil.parser
 import nacl.public
 import nacl.encoding
 import nacl.utils
 import requests
+import re
+
+
+def verify_email(email):
+    regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+    if type(email) is not str:
+        raise ValueError("Invalid email.")
+    if not re.fullmatch(regex, email):
+        raise ValueError("Invalid email.")
+    return True
 
 
 class Client:
@@ -19,7 +31,7 @@ class Client:
 
     Example initiate connection:
 
-        >>> from vulnportal_client.client import Client
+        >>> from vms.client import Client
         >>> exodus_api = Client('email', 'password', 'private_key')
 
     Note: See help(Client) for more information.
@@ -29,31 +41,31 @@ class Client:
     url = "https://vpx.exodusintel.com/"
 
     def __init__(self, email, password, key=None) -> None:
+        if verify_email(email):
+            self.email = email
         self.session = requests.Session()
-        self.email = email
         self.password = password
         self.private_key = key
+        self.token = self.get_access_token()
 
-        def get_access_token(self):
-            """Obtain access token.
+    def get_access_token(self):
+        """Obtain access token.
 
-            Args:
-                self (object): Class instance.
+        Args:
+            self (object): Class instance.
 
-            Returns:
-                str: The token or None
-            """
-            r = self.session.post(
-                self.url + "vpx-api/v1/login",
-                json={"email": self.email, "password": self.password},
+        Returns:
+            str: The token or None
+        """
+        r = self.session.post(
+            self.url + "vpx-api/v1/login",
+            json={"email": self.email, "password": self.password},
+        )
+        if r.status_code != 200:
+            raise requests.exceptions.ConnectionError(
+                "Could not authenticate!"
             )
-            if r.status_code != 200:
-                print("Could not authenticate!", r.status_code)
-                return None
-
-            return r.json()["access_token"]
-
-        self.token = get_access_token(self)
+        return r.json()["access_token"]
 
     def get_bronco_public_key(self):
         """Get server public key.
@@ -61,9 +73,13 @@ class Client:
         Returns:
             str: A string representation of a public key.
         """
-        return self.session.get(
-            self.url + "vpx-api/v1/bronco-public-key"
-        ).json()["data"]["public_key"]
+        try:
+            key = self.session.get(
+                self.url + "vpx-api/v1/bronco-public-key"
+            ).json()["data"]["public_key"]
+        except:
+            raise requests.exceptions.InvalidURL
+        return key
 
     def decrypt_bronco_in_report(self, report, bronco_public_key):
         """Decrypt the content of a report using a private and public key.
@@ -110,11 +126,10 @@ class Client:
         # Try to load reset as a ISO8601 datetime
         try:
             reset = dateutil.parser.isoparse(reset)
-        except ValueError:
-            print(
+        except:
+            raise ValueError(
                 f"Did not recognize '{reset}' as a legitimate ISO8601 datetime"
             )
-            sys.exit()
 
     def get_vuln(self, identifier):
         """Get a Vulnerability by identifier or cve.
@@ -126,17 +141,14 @@ class Client:
             identifier (str): String representation of vulnerability id.
 
         Returns:
-            dict or None: Returns either a report in json format or None
+            dict or exception: Returns either a report in json format or an exception
         """
-        # self.get_access_token()
-
         r = self.session.get(self.url + f"vpx-api/v1/vuln/for/{identifier}")
-
-        if r.json()["ok"]:
-            # print(json.dumps(r.json(), indent=2))
-            return r.json()
-
-        return None
+        try:
+            if r.json()["ok"]:
+                return r.json()
+        except:
+            raise KeyError
 
     def get_recent_vulns(self, reset=1):
         """Get a list of recent vulnerabilities.
@@ -155,7 +167,7 @@ class Client:
         params = {}
         if reset:
             params = {"reset": reset.isoformat()}
-            print(f"Resetting stream marker to {reset}")
+            # print(f"Resetting stream marker to {reset}")
 
         r = self.session.get(
             self.url + "vpx-api/v1/vulns/recent", params=params
@@ -172,6 +184,7 @@ class Client:
         Returns:
             dict or None: Returns a list of reports or None.
         """
+
         if reset:
             reset = self.handle_reset_option(reset)
 
@@ -181,21 +194,28 @@ class Client:
         if reset:
             reset = reset.isoformat()
             params = {"reset": reset}
-            print(f"Resetting stream marker to {reset}")
+            # print(f"Resetting stream marker to {reset}")
 
-        r = self.session.get(
-            self.url + "vpx-api/v1/reports/recent", params=params
-        )
+        try:
+            r = self.session.get(
+                self.url + "vpx-api/v1/reports/recent", params=params
+            )
+            # print(r.json())
+            r = r.json()
+        except:
+            raise requests.exceptions.InvalidURL("Unable to connect to API")
 
-        r = r.json()
-        if self.private_key and r["ok"]:
-            bronco_public_key = self.get_bronco_public_key()
-            r["data"]["items"] = [
-                self.decrypt_bronco_in_report(report, bronco_public_key)
-                for report in r["data"]["items"]
-            ]
-            print(json.dumps(r, indent=2))
-            return r
+        try:
+            if self.private_key and r["ok"]:
+                bronco_public_key = self.get_bronco_public_key()
+                r["data"]["items"] = [
+                    self.decrypt_bronco_in_report(report, bronco_public_key)
+                    for report in r["data"]["items"]
+                ]
+                # print(json.dumps(r, indent=2))
+                return r
+        except KeyError:
+            raise KeyError("No Recent Reports")
         return None
 
     def get_report(self, identifier):
@@ -211,11 +231,17 @@ class Client:
 
         r = self.session.get(self.url + f"vpx-api/v1/report/{identifier}")
         if r.status_code == 404:
-            print(f"Couldn't find a report for {identifier}")
-            return None
+            return {
+                "msg": f"Couldn't find a report for {identifier}",
+                "status": r.status_code,
+                "data": None,
+            }
         elif r.status_code != 200:
-            print("Something went wrong")
-            return None
+            return {
+                "msg": f"Something went wrong for {identifier}",
+                "status": r.status_code,
+                "data": None,
+            }
 
         r = r.json()
 
@@ -232,9 +258,10 @@ class Client:
             dict or None: Returns <TODO>
         """
         # self.get_access_token()
-
-        r = self.session.get(self.url + "vpx-api/v1/aggr/vulns/by/day")
-        # print(json.dumps(r.json(), indent=2))
+        try:
+            r = self.session.get(self.url + "vpx-api/v1/aggr/vulns/by/day")
+        except:
+            raise requests.exceptions.InvalidURL
         return r.json()
 
     def generate_key_pair(self):
@@ -247,6 +274,7 @@ class Client:
         # self.get_access_token()
 
         # Get the CSRF token from the session cookies
+
         csrf_token = [
             c.value
             for c in self.session.cookies
@@ -292,3 +320,10 @@ class Client:
             public_key.encode(nacl.encoding.Base64Encoder).decode("utf-8"),
             secret_key.encode(nacl.encoding.Base64Encoder).decode("utf-8"),
         )
+
+
+email = os.environ.get("XI_EMAIL")
+password = os.environ.get("XI_PASS")
+key = os.environ.get("XI_KEY")
+
+# a = Client(email, password, key)
