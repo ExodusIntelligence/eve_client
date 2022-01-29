@@ -1,6 +1,5 @@
 from asyncio import exceptions
 import datetime
-from os import unlink
 import string
 import unittest
 from unittest import mock
@@ -9,7 +8,6 @@ import requests
 import requests_mock
 
 from vms_client import __version__, vms
-import vms_client
 
 
 class TestVmsClient(unittest.TestCase):
