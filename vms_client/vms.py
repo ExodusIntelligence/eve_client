@@ -1,31 +1,34 @@
+from asyncio import exceptions
+import json
+import os
+import re
+import sys
 from base64 import b64decode, b64encode
 from datetime import datetime, timedelta
-import json
-import sys
-import os
 
 import dateutil.parser
-import nacl.public
 import nacl.encoding
+import nacl.public
 import nacl.utils
 import requests
-import re
 
 
 def verify_email(email):
-    """Function verify email has right format
+    """Verify email's format.
 
     Args:
         email: email address.
 
     Raises:
-        ValueError
+        ValueError: If `email` is not a string.
+        ValueError: If `email` format is invalid.
+
     Returns:
         bool: True
     """
     regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
     if type(email) is not str:
-        raise ValueError("Invalid email.")
+        raise ValueError("Email is not a string.")
     if not re.fullmatch(regex, email):
         raise ValueError("Invalid email.")
     return True
@@ -203,12 +206,10 @@ class Client:
             reset = reset.isoformat()
             params = {"reset": reset}
             # print(f"Resetting stream marker to {reset}")
-
         try:
             r = self.session.get(
                 self.url + "vpx-api/v1/reports/recent", params=params
             )
-            # print(r.json())
             r = r.json()
         except:
             raise requests.exceptions.InvalidURL("Unable to connect to API")
@@ -252,7 +253,6 @@ class Client:
             }
 
         r = r.json()
-
         if self.private_key:
             bronco_public_key = self.get_bronco_public_key()
             self.decrypt_bronco_in_report(r["data"], bronco_public_key)
@@ -292,7 +292,6 @@ class Client:
         # Generate a public/private key pair
         secret_key = nacl.public.PrivateKey.generate()
         public_key = secret_key.public_key
-
         # Propose the public key
         r = self.session.post(
             self.url + "vpx-api/v1/pubkey",
@@ -303,9 +302,12 @@ class Client:
                 )
             },
         )
+
         if r.status_code != 200:
-            print(f"Couldn't set public key, status code {r.status_code}")
-            sys.exit()
+            raise exceptions.InvalidStateError(
+                f"Couldn't set public key, status code {r.status_code}"
+            )
+
         challenge = b64decode(r.json()["data"]["challenge"])
 
         # Send the challenge response
@@ -321,17 +323,11 @@ class Client:
             },
         )
         if r.status_code != 200:
-            print(f"Couldn't confirm public key, status code {r.status_code}")
-            sys.exit()
+            raise exceptions.InvalidStateError(
+                f"Couldn't confirm public key, status code {r.status_code}"
+            )
 
         return (
             public_key.encode(nacl.encoding.Base64Encoder).decode("utf-8"),
             secret_key.encode(nacl.encoding.Base64Encoder).decode("utf-8"),
         )
-
-
-email = os.environ.get("XI_EMAIL")
-password = os.environ.get("XI_PASS")
-key = os.environ.get("XI_KEY")
-
-# a = Client(email, password, key)

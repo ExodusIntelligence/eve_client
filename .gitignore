@@ -1,5 +1,8 @@
+__pycache__
 dist
 dist/*
 .python-version
 poetry.lock
 .vscode
+.coverage
+.flake8
