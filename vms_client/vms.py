@@ -1,10 +1,10 @@
-from asyncio import exceptions
 import json
-import os
+import logging
 import re
-import sys
+from asyncio import exceptions
 from base64 import b64decode, b64encode
 from datetime import datetime, timedelta
+from os import sys
 
 import dateutil.parser
 import nacl.encoding
@@ -52,21 +52,32 @@ class Client:
     url = "https://vpx.exodusintel.com/"
 
     def __init__(self, email, password, key=None) -> None:
+        """Init the Client class.
+
+        Args:
+            email (str): Email address registered with Exodus Intelligence.
+            password (str): User password
+            key (str, optional): Exodus Intelligence API key. Defaults to None.
+        """
+        self.conn_error_msg = "Connection Error while retrieving"
         if verify_email(email):
             self.email = email
         self.session = requests.Session()
         self.password = password
         self.private_key = key
         self.token = self.get_access_token()
+        logging.basicConfig(
+            format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
+        )
 
     def get_access_token(self):
         """Obtain access token.
 
-        Args:
-            self (object): Class instance.
+        Raises:
+            ConnectionError: When a connection to API is unavailable.
 
         Returns:
-            str: The token or None
+            str: The token.
         """
         r = self.session.post(
             self.url + "vpx-api/v1/login",
@@ -88,8 +99,9 @@ class Client:
             key = self.session.get(
                 self.url + "vpx-api/v1/bronco-public-key"
             ).json()["data"]["public_key"]
-        except:
-            raise requests.exceptions.InvalidURL
+        except requests.exceptions.ConnectionError:
+            logging.error(f"{self.conn_error_msg} while retrieving Public key")
+            sys.exit(1)
         return key
 
     def decrypt_bronco_in_report(self, report, bronco_public_key):
@@ -137,10 +149,11 @@ class Client:
         # Try to load reset as a ISO8601 datetime
         try:
             reset = dateutil.parser.isoparse(reset)
-        except:
-            raise ValueError(
-                f"Did not recognize '{reset}' as a legitimate ISO8601 datetime"
+        except ValueError as e:
+            logging.error(
+                f"Did not recognize '{reset}' as ISO8601 datetime - {e}"
             )
+            sys.exit(1)
 
     def get_vuln(self, identifier):
         """Get a Vulnerability by identifier or cve.
@@ -152,14 +165,18 @@ class Client:
             identifier (str): String representation of vulnerability id.
 
         Returns:
-            dict or exception: Returns either a report in json format or an exception
+            dict or exception: Returns either a report in json format or
+            an exception
         """
-        r = self.session.get(self.url + f"vpx-api/v1/vuln/for/{identifier}")
         try:
+            r = self.session.get(
+                self.url + f"vpx-api/v1/vuln/for/{identifier}"
+            )
             if r.json()["ok"]:
                 return r.json()
-        except:
-            raise KeyError
+        except (KeyError, requests.exceptions.ConnectionError):
+            logging.error(f"{self.conn_error_msg} {identifier}")
+            sys.exit(1)
 
     def get_recent_vulns(self, reset=1):
         """Get a list of recent vulnerabilities.
@@ -195,7 +212,6 @@ class Client:
         Returns:
             dict or None: Returns a list of reports or None.
         """
-
         if reset:
             reset = self.handle_reset_option(reset)
 
@@ -211,8 +227,9 @@ class Client:
                 self.url + "vpx-api/v1/reports/recent", params=params
             )
             r = r.json()
-        except:
-            raise requests.exceptions.InvalidURL("Unable to connect to API")
+        except requests.exceptions.ConnectionError:
+            logging.error(f"{self.conn_error_msg} recent reports.")
+            sys.exit(1)
 
         try:
             if self.private_key and r["ok"]:
@@ -224,7 +241,8 @@ class Client:
                 # print(json.dumps(r, indent=2))
                 return r
         except KeyError:
-            raise KeyError("No Recent Reports")
+            logging.error("No Recent Reports")
+            sys.exit(1)
         return None
 
     def get_report(self, identifier):
@@ -268,15 +286,20 @@ class Client:
         # self.get_access_token()
         try:
             r = self.session.get(self.url + "vpx-api/v1/aggr/vulns/by/day")
-        except:
-            raise requests.exceptions.InvalidURL
+        except requests.exceptions.ConnectionError:
+            logging.error(f"{self.conn_error_msg} vulnerabilities by day.")
+            sys.exit(1)
         return r.json()
 
     def generate_key_pair(self):
         """Generate a Key Pair.
 
+        Raises:
+            InvalidStateError: Could not set the public key.
+            InvalidStateError: Could not confirm the public key.
+
         Returns:
-            tuple: Returns a key pair (sk, pk).
+            tuple: A key pair (sk, pk)
         """
         # Login
         # self.get_access_token()

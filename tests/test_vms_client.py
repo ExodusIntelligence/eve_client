@@ -1,7 +1,7 @@
-from asyncio import exceptions
 import datetime
 import string
 import unittest
+from asyncio import exceptions
 from unittest import mock
 
 import requests
@@ -79,10 +79,10 @@ class TestVmsClient(unittest.TestCase):
         mock_session.register_uri(
             "GET",
             f"{self.url}/vpx-api/v1/bronco-public-key",
-            exc=requests.exceptions.InvalidURL,
+            exc=requests.exceptions.ConnectionError,
         )
         self.assertRaises(
-            requests.exceptions.InvalidURL,
+            SystemExit,
             vms.Client.get_bronco_public_key,
             self.client,
         )
@@ -120,7 +120,7 @@ class TestVmsClient(unittest.TestCase):
     def test_handle_reset_option_Raises(self):
         reset = "2022-10-DD"
         self.assertRaises(
-            ValueError, vms.Client.handle_reset_option, self.client, reset
+            SystemExit, vms.Client.handle_reset_option, self.client, reset
         )
 
     @requests_mock.Mocker()
@@ -134,7 +134,7 @@ class TestVmsClient(unittest.TestCase):
         response = vms.Client.get_vuln(self.client, identifier)
         self.assertEqual(response, {"ok": "ok"})
         self.assertRaises(
-            KeyError, vms.Client.get_vuln, self.client, identifier
+            SystemExit, vms.Client.get_vuln, self.client, identifier
         )
 
     @requests_mock.Mocker()
@@ -170,16 +170,16 @@ class TestVmsClient(unittest.TestCase):
         vms.Client.get_recent_reports(self.client, reset)
 
         self.assertRaises(
-            KeyError, vms.Client.get_recent_reports, self.client, reset
+            SystemExit, vms.Client.get_recent_reports, self.client, reset
         )
 
         mock_session.register_uri(
             "GET",
             f"{self.url}/vpx-api/v1/reports/recent",
-            exc=requests.exceptions.InvalidURL,
+            exc=requests.exceptions.ConnectionError,
         )
         self.assertRaises(
-            requests.exceptions.InvalidURL,
+            SystemExit,
             vms.Client.get_recent_reports,
             self.client,
         )
@@ -268,10 +268,10 @@ class TestVmsClient(unittest.TestCase):
         mock_session.register_uri(
             "GET",
             f"{self.url}/vpx-api/v1/aggr/vulns/by/day",
-            exc=requests.exceptions.InvalidURL,
+            exc=requests.exceptions.ConnectionError,
         )
         self.assertRaises(
-            requests.exceptions.InvalidURL,
+            SystemExit,
             vms.Client.get_vulns_by_day,
             self.client,
         )
