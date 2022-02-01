@@ -99,8 +99,10 @@ class Client:
             key = self.session.get(
                 self.url + "vpx-api/v1/bronco-public-key"
             ).json()["data"]["public_key"]
-        except requests.exceptions.ConnectionError:
-            logging.error(f"{self.conn_error_msg} while retrieving Public key")
+        except (requests.exceptions.ConnectionError, KeyError) as e:
+            logging.error(
+                f"{self.conn_error_msg} while retrieving Public key - {e}"
+            )
             sys.exit(1)
         return key
 
@@ -190,17 +192,14 @@ class Client:
         if reset:
             reset = self.handle_reset_option(reset)
 
-        # self.get_access_token()
-
         params = {}
         if reset:
             params = {"reset": reset.isoformat()}
-            # print(f"Resetting stream marker to {reset}")
 
         r = self.session.get(
             self.url + "vpx-api/v1/vulns/recent", params=params
         )
-        # print(json.dumps(r.json(), indent=2))
+
         return r.json()
 
     def get_recent_reports(self, reset=1):
@@ -215,13 +214,10 @@ class Client:
         if reset:
             reset = self.handle_reset_option(reset)
 
-        # self.get_access_token()
-
         params = {}
         if reset:
             reset = reset.isoformat()
             params = {"reset": reset}
-            # print(f"Resetting stream marker to {reset}")
         try:
             r = self.session.get(
                 self.url + "vpx-api/v1/reports/recent", params=params
@@ -238,7 +234,6 @@ class Client:
                     self.decrypt_bronco_in_report(report, bronco_public_key)
                     for report in r["data"]["items"]
                 ]
-                # print(json.dumps(r, indent=2))
                 return r
         except KeyError:
             logging.error("No Recent Reports")
@@ -254,7 +249,6 @@ class Client:
         Returns:
             dict or None: Returns either a report in json format or None
         """
-        # self.get_access_token()
 
         r = self.session.get(self.url + f"vpx-api/v1/report/{identifier}")
         if r.status_code == 404:
@@ -281,9 +275,8 @@ class Client:
         """Get vulnerabilities by day.
 
         Returns:
-            dict or None: Returns <TODO>
+            dict or None: Returns vulnerabilities list.
         """
-        # self.get_access_token()
         try:
             r = self.session.get(self.url + "vpx-api/v1/aggr/vulns/by/day")
         except requests.exceptions.ConnectionError:
@@ -301,9 +294,6 @@ class Client:
         Returns:
             tuple: A key pair (sk, pk)
         """
-        # Login
-        # self.get_access_token()
-
         # Get the CSRF token from the session cookies
 
         csrf_token = [
