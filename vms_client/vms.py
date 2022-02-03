@@ -51,7 +51,7 @@ class Client:
 
     url = "https://vpx.exodusintel.com/"
 
-    def __init__(self, email, password, key=None) -> None:
+    def __init__(self, email, password, url=None, key=None) -> None:
         """Init the Client class.
 
         Args:
@@ -60,6 +60,8 @@ class Client:
             key (str, optional): Exodus Intelligence API key. Defaults to None.
         """
         self.conn_error_msg = "Connection Error while retrieving"
+        if url:
+            self.url = url
         if verify_email(email):
             self.email = email
         self.session = requests.Session()
@@ -120,7 +122,7 @@ class Client:
         nonce = ciphertext[0:24]
         ciphertext = ciphertext[24:]
         unseal_box = nacl.public.Box(
-            nacl.public.PrivateKey(b64decode(self.private_key_b64)),
+            nacl.public.PrivateKey(b64decode(self.private_key)),
             nacl.public.PublicKey(b64decode(bronco_public_key)),
         )
         plaintext = unseal_box.decrypt(ciphertext, nonce)
