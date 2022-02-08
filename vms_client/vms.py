@@ -51,7 +51,7 @@ class Client:
 
     url = "https://vpx.exodusintel.com/"
 
-    def __init__(self, email, password, url=None, key=None) -> None:
+    def __init__(self, email, password, key=None) -> None:
         """Init the Client class.
 
         Args:
@@ -60,8 +60,6 @@ class Client:
             key (str, optional): Exodus Intelligence API key. Defaults to None.
         """
         self.conn_error_msg = "Connection Error while retrieving"
-        if url:
-            self.url = url
         if verify_email(email):
             self.email = email
         self.session = requests.Session()
@@ -251,7 +249,6 @@ class Client:
         Returns:
             dict or None: Returns either a report in json format or None
         """
-
         r = self.session.get(self.url + f"vpx-api/v1/report/{identifier}")
         if r.status_code == 404:
             return {
