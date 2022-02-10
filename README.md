@@ -6,12 +6,13 @@
 An Exodus Intelligence Account is required. Visit https://vpx.exodusintel.com to obtain an account.
 
 **Getting started**
-Installation via pip:
+Installation via pip: [TODO]
 
 ```bash
-$ pip install vms_client  [TODO]
+$ pip install vms_client
 ```
-**Manual installation:**
+
+Installation from binary: [TODO]
 
 Download the wheel file from <here>:
 
@@ -19,7 +20,7 @@ Download the wheel file from <here>:
 $ pip install exodus_vms.whl
 ```
 
-or you can clone the repo
+Installation from source:
 
 ```bash
 $ git clone url
@@ -55,12 +56,10 @@ $ pip install -r requirements.txt
 >>>
 ```
 
+
+**Help on module vms:**
+
 ```
-Help on module vms:
-
-NAME
-    vms
-
 CLASSES
     builtins.object
         Client
@@ -70,9 +69,7 @@ CLASSES
      |  
      |  Class client to communicate with the Exodus API.
      |  
-     |  This module allows to connect and interact with the
-     |  Exodus Intelligence API.
-     |  
+     |  This module allows to connect and interact with the         Exodus Intelligence API.
      |  
      |  Methods defined here:
      |  
@@ -126,7 +123,7 @@ CLASSES
      |          reset (int): Number of days in the past to reset.
      |      
      |      Returns:
-     |          dict or None: Returns a list of reports or None.
+     |          dict or None: A list of reports or None.
      |  
      |  get_recent_vulns(self, reset=1)
      |      Get a list of recent vulnerabilities.
@@ -135,7 +132,7 @@ CLASSES
      |          reset (int): Number of days in the past to reset.
      |      
      |      Returns:
-     |          dict: Returns a list of vulnerabilities.
+     |          dict:A list of vulnerabilities.
      |  
      |  get_report(self, identifier)
      |      Get a report by identifier.
@@ -144,7 +141,7 @@ CLASSES
      |          identifier (str): String representation of report id.
      |      
      |      Returns:
-     |          dict: Returns report or None.
+     |          dict: A report or None.
      |  
      |  get_vuln(self, identifier)
      |      Get a Vulnerability by identifier or cve.
@@ -156,13 +153,13 @@ CLASSES
      |          identifier (str): String representation of vulnerability id.
      |      
      |      Returns:
-     |          dict: Returns a vulnerability
+     |          dict: A vulnerability
      |  
      |  get_vulns_by_day(self)
      |      Get vulnerabilities by day.
      |      
      |      Returns:
-     |          dict or None: Returns a list of vulnerabilities.
+     |          dict or None: A list of vulnerabilities.
      |  
      |  handle_reset_option(self, reset)
      |      Reset number of days.
@@ -200,5 +197,4 @@ FUNCTIONS
         
         Returns:
             bool: True
-
 ```
