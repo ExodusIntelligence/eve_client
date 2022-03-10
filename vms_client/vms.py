@@ -1,15 +1,16 @@
 import json
 import logging
+import os
 import re
 from asyncio import exceptions
 from base64 import b64decode, b64encode
 from datetime import datetime, timedelta
-from os import sys
 
 import dateutil.parser
 import nacl.encoding
 import nacl.public
 import nacl.utils
+import nacl.exceptions
 import requests
 
 
@@ -103,7 +104,7 @@ class Client:
             logging.error(
                 f"{self.conn_error_msg} while retrieving Public key - {e}"
             )
-            sys.exit(1)
+            os.sys.exit(1)
         return key
 
     def decrypt_bronco_in_report(self, report, bronco_public_key):
@@ -119,11 +120,15 @@ class Client:
         ciphertext = b64decode(report["bronco"])
         nonce = ciphertext[0:24]
         ciphertext = ciphertext[24:]
-        unseal_box = nacl.public.Box(
-            nacl.public.PrivateKey(b64decode(self.private_key)),
-            nacl.public.PublicKey(b64decode(bronco_public_key)),
-        )
-        plaintext = unseal_box.decrypt(ciphertext, nonce)
+        try:
+            unseal_box = nacl.public.Box(
+                nacl.public.PrivateKey(b64decode(self.private_key)),
+                nacl.public.PublicKey(b64decode(bronco_public_key)),
+            )
+            plaintext = unseal_box.decrypt(ciphertext, nonce)
+        except Exception as e:
+            logging.error(f"{e}. Check your private key.")
+            os._exit(1)
         report["bronco"] = json.loads(plaintext)
         return report
 
@@ -155,7 +160,7 @@ class Client:
             logging.error(
                 f"Did not recognize '{reset}' as ISO8601 datetime - {e}"
             )
-            sys.exit(1)
+            os.sys.exit(1)
 
     def get_vuln(self, identifier):
         """Get a Vulnerability by identifier or cve.
@@ -178,7 +183,7 @@ class Client:
                 return r.json()
         except (KeyError, requests.exceptions.ConnectionError):
             logging.error(f"{self.conn_error_msg} {identifier}")
-            sys.exit(1)
+            os.sys.exit(1)
 
     def get_recent_vulns(self, reset=1):
         """Get a list of recent vulnerabilities.
@@ -225,7 +230,7 @@ class Client:
             r = r.json()
         except requests.exceptions.ConnectionError:
             logging.error(f"{self.conn_error_msg} recent reports.")
-            sys.exit(1)
+            os.sys.exit(1)
 
         try:
             if self.private_key and r["ok"]:
@@ -237,7 +242,7 @@ class Client:
                 return r
         except KeyError:
             logging.error("No Recent Reports")
-            sys.exit(1)
+            os.sys.exit(1)
         return None
 
     def get_report(self, identifier):
@@ -280,7 +285,7 @@ class Client:
             r = self.session.get(self.url + "vpx-api/v1/aggr/vulns/by/day")
         except requests.exceptions.ConnectionError:
             logging.error(f"{self.conn_error_msg} vulnerabilities by day.")
-            sys.exit(1)
+            os.sys.exit(1)
         return r.json()
 
     def generate_key_pair(self):
