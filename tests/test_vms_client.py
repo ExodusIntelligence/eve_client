@@ -23,7 +23,7 @@ class TestVmsClient(unittest.TestCase):
         client = vms.Client(email, password, private_key)
 
     def test_version(self):
-        self.assertEqual(__version__, "0.1.4")
+        self.assertEqual(__version__, "1.0.0-rc.1")
 
     def testClassValidArguments(self):
         self.assertTrue(vms.verify_email("test00@test.com"))
@@ -160,7 +160,7 @@ class TestVmsClient(unittest.TestCase):
             [{"json": {"ok": "ok"}}],
         )
 
-        response = vms.Client.get_recent_vulns(self.client)
+        response = vms.Client.get_recent_vulns(self.client, 5)
         self.assertEqual(response, {"ok": "ok"})
 
     @mock.patch(
