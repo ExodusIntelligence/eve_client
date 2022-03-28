@@ -69,7 +69,15 @@ CLASSES
      |  
      |  Class client to communicate with the Exodus API.
      |  
-     |  This module allows to connect and interact with the         Exodus Intelligence API.
+     |  This module allows to connect and interact with the
+     |  Exodus Intelligence API.
+     |  
+     |  Example initiate connection:
+     |  
+     |      >>> from vms.client import Client
+     |      >>> exodus_api = Client('email', 'password', 'private_key')
+     |  
+     |  Note: See help(Client) for more information.
      |  
      |  Methods defined here:
      |  
@@ -89,10 +97,10 @@ CLASSES
      |          bronco_public_key (str): The public key
      |      
      |      Returns:
-     |          dict: A decrypted report.
+     |          dict: A dictionary object representing the report.
      |  
      |  generate_key_pair(self)
-     |      Generate a Key Pair. It does not reset the user's key.
+     |      Generate a Key Pair.
      |      
      |      Raises:
      |          InvalidStateError: Could not set the public key.
@@ -114,7 +122,7 @@ CLASSES
      |      Get server public key.
      |      
      |      Returns:
-     |          str: The public key.
+     |          str: A string representation of a public key.
      |  
      |  get_recent_reports(self, reset=1)
      |      Get list of recent reports.
@@ -123,16 +131,18 @@ CLASSES
      |          reset (int): Number of days in the past to reset.
      |      
      |      Returns:
-     |          dict or None: A list of reports or None.
+     |          dict or None: Returns a list of reports or None.
      |  
-     |  get_recent_vulns(self, reset=1)
-     |      Get a list of recent vulnerabilities.
+     |  get_recent_vulns(self, reset=None)
+     |      Get all vulnerabilities within 60 days of the user's stream marker;
+     |      limit of 50 vulnerabilities can be returned.
      |      
      |      Args:
-     |          reset (int): Number of days in the past to reset.
+     |          reset (int): Reset the stream maker to a number of days in the
+     |          past.
      |      
      |      Returns:
-     |          dict:A list of vulnerabilities.
+     |          dict or None: Returns a list of vulnerabilities or None.
      |  
      |  get_report(self, identifier)
      |      Get a report by identifier.
@@ -141,7 +151,7 @@ CLASSES
      |          identifier (str): String representation of report id.
      |      
      |      Returns:
-     |          dict: A report or None.
+     |          dict or None: Returns either a report in json format or None
      |  
      |  get_vuln(self, identifier)
      |      Get a Vulnerability by identifier or cve.
@@ -153,13 +163,14 @@ CLASSES
      |          identifier (str): String representation of vulnerability id.
      |      
      |      Returns:
-     |          dict: A vulnerability
+     |          dict or exception: Returns either a report in json format or
+     |          an exception
      |  
      |  get_vulns_by_day(self)
      |      Get vulnerabilities by day.
      |      
      |      Returns:
-     |          dict or None: A list of vulnerabilities.
+     |          dict or None: Returns vulnerabilities list.
      |  
      |  handle_reset_option(self, reset)
      |      Reset number of days.

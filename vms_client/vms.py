@@ -185,11 +185,13 @@ class Client:
             logging.error(f"{self.conn_error_msg} {identifier}")
             os.sys.exit(1)
 
-    def get_recent_vulns(self, reset=1):
-        """Get a list of recent vulnerabilities.
+    def get_recent_vulns(self, reset=None):
+        """Get all vulnerabilities within 60 days of the user's stream marker;\
+             limit of 50 vulnerabilities can be returned.
 
         Args:
-            reset (int): Number of days in the past to reset.
+            reset (int): Reset the stream maker to a number of days in the\
+                past.
 
         Returns:
             dict or None: Returns a list of vulnerabilities or None.
