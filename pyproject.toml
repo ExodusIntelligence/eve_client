@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vms_client"
-version = "0.1.4"
+version = "1.0.0-rc.1"
 description = "VMS client for Exodus Intelligence's API."
 authors = ["DevTeam <dev@exodusintel.com>"]
 
