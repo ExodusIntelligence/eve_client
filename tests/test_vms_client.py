@@ -3,6 +3,7 @@ import string
 import unittest
 from asyncio import exceptions
 from unittest import mock
+from more_itertools import side_effect
 
 import requests
 import requests_mock
@@ -22,7 +23,7 @@ class TestVmsClient(unittest.TestCase):
         client = vms.Client(email, password, private_key)
 
     def test_version(self):
-        self.assertEqual(__version__, "0.1.3")
+        self.assertEqual(__version__, "0.1.4")
 
     def testClassValidArguments(self):
         self.assertTrue(vms.verify_email("test00@test.com"))
@@ -87,8 +88,14 @@ class TestVmsClient(unittest.TestCase):
             self.client,
         )
 
-    @mock.patch("vms_client.vms.b64decode", return_value="DecodeMessage")
-    @mock.patch("vms_client.vms.nacl", return_value="SomeBox")
+    @mock.patch(
+        "vms_client.vms.b64decode",
+        return_value="DecodedMessage",
+    )
+    @mock.patch(
+        "vms_client.vms.nacl",
+        return_value="SomeBox",
+    )
     @mock.patch(
         "vms_client.vms.json.loads",
         return_value="ReportContentPlainText",
@@ -101,6 +108,14 @@ class TestVmsClient(unittest.TestCase):
                 self.client, report, "PublicKey"
             ),
             {"bronco": "ReportContentPlainText"},
+        )
+        mock_decode.side_effect = ["abc", KeyError]
+        self.assertRaises(
+            KeyError,
+            vms.Client.decrypt_bronco_in_report,
+            self.client,
+            report,
+            "PublicKey",
         )
 
     def test_handle_reset_option(self):

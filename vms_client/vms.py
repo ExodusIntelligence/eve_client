@@ -128,7 +128,7 @@ class Client:
             plaintext = unseal_box.decrypt(ciphertext, nonce)
         except Exception as e:
             logging.error(f"{e}. Check your private key.")
-            os._exit(1)
+            raise KeyError("Check your Private Key")
         report["bronco"] = json.loads(plaintext)
         return report
 
