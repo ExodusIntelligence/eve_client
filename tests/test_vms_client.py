@@ -8,22 +8,33 @@ from more_itertools import side_effect
 import requests
 import requests_mock
 
-from vms_client import __version__, vms
+from vms_client import vms, __version__
 
 
-class TestVmsClient(unittest.TestCase):
+class TestVMSClient(unittest.TestCase):
     url = "https://vpx.exodusintel.com"
     email = "test@test.com"
     password = "SuperP@ss"  # noqa
     private_key = "MyPrivateKey"
 
     with mock.patch(
-        "vms_client.vms.Client.get_access_token", return_value="-access_token-"
+        "vms_client.vms.VMSClient.get_access_token",
+        return_value="-access_token-",
     ) as _:
-        client = vms.Client(email, password, private_key)
+        client = vms.VMSClient(email, password, private_key)
 
     def test_version(self):
-        self.assertEqual(__version__, "1.0.0-rc.1")
+        self.assertEqual(__version__, "1.0.0rc1")
+
+    def test_url(self):
+        url = "vpx.exodusintel.com"
+        with mock.patch(
+            "vms_client.vms.VMSClient.get_access_token",
+            return_value="-access_token-",
+        ) as _:
+            client = vms.VMSClient(
+                self.email, self.password, self.private_key, url
+            )
 
     def testClassValidArguments(self):
         self.assertTrue(vms.verify_email("test00@test.com"))
@@ -51,16 +62,16 @@ class TestVmsClient(unittest.TestCase):
         )
 
         self.assertEqual(
-            vms.Client.get_access_token(self.client), "-access_token-"
+            vms.VMSClient.get_access_token(self.client), "-access_token-"
         )
         self.assertRaises(
             requests.exceptions.ConnectionError,
-            vms.Client.get_access_token,
+            vms.VMSClient.get_access_token,
             self.client,
         )
 
     @requests_mock.Mocker()
-    def test_Get_Bronco_Public_Key(self, mock_session):
+    def test_get_bronco_public_key(self, mock_session):
         mock_session.register_uri(
             "GET",
             f"{self.url}/vpx-api/v1/bronco-public-key",
@@ -71,22 +82,20 @@ class TestVmsClient(unittest.TestCase):
             },
             status_code=404,
         )
-        response = vms.Client.get_bronco_public_key(self.client)
+        response = vms.VMSClient.get_bronco_public_key(self.client)
 
         self.assertEqual(response, string.ascii_lowercase)
 
     @requests_mock.Mocker()
-    def test_Get_Bronco_Public_Key_Raises(self, mock_session):
+    def test_get_bronco_public_key_raises(self, mock_session):
         mock_session.register_uri(
             "GET",
             f"{self.url}/vpx-api/v1/bronco-public-key",
             exc=requests.exceptions.ConnectionError,
         )
-        self.assertRaises(
-            SystemExit,
-            vms.Client.get_bronco_public_key,
-            self.client,
-        )
+        response = vms.VMSClient.get_bronco_public_key(self.client)
+        self.assertLogs(level="warning")
+        self.assertEqual(response, None)
 
     @mock.patch(
         "vms_client.vms.b64decode",
@@ -104,7 +113,7 @@ class TestVmsClient(unittest.TestCase):
         report = {"bronco": "TheSecretMessage"}
         self.client.private_key_b64 = ""
         self.assertEqual(
-            vms.Client.decrypt_bronco_in_report(
+            vms.VMSClient.decrypt_bronco_in_report(
                 self.client, report, "PublicKey"
             ),
             {"bronco": "ReportContentPlainText"},
@@ -112,7 +121,7 @@ class TestVmsClient(unittest.TestCase):
         mock_decode.side_effect = ["abc", KeyError]
         self.assertRaises(
             KeyError,
-            vms.Client.decrypt_bronco_in_report,
+            vms.VMSClient.decrypt_bronco_in_report,
             self.client,
             report,
             "PublicKey",
@@ -120,23 +129,29 @@ class TestVmsClient(unittest.TestCase):
 
     def test_handle_reset_option(self):
         reset = 1
-        response = vms.Client.handle_reset_option(self.client, reset)
+        response = vms.VMSClient.handle_reset_option(self.client, reset)
         self.assertGreaterEqual(
             datetime.datetime.now(),
             response,
         )
 
+    def test_handle_reset_option_iso(self):
+        reset = "2022-03-03"
+        self.assertEqual(
+            str(vms.VMSClient.handle_reset_option(self.client, reset).date()),
+            reset,
+        )
+
     def test_handle_reset_option_None(self):
         reset = None
         self.assertEqual(
-            vms.Client.handle_reset_option(self.client, reset), reset
+            vms.VMSClient.handle_reset_option(self.client, reset), reset
         )
 
-    def test_handle_reset_option_Raises(self):
+    def test_handle_reset_option_logs(self):
         reset = "2022-10-DD"
-        self.assertRaises(
-            SystemExit, vms.Client.handle_reset_option, self.client, reset
-        )
+        response = vms.VMSClient.handle_reset_option(self.client, reset)
+        self.assertLogs(level="warning")
 
     @requests_mock.Mocker()
     def test_get_vuln(self, mock_session):
@@ -146,25 +161,39 @@ class TestVmsClient(unittest.TestCase):
             f"{self.url}/vpx-api/v1/vuln/for/{identifier}",
             [{"json": {"ok": "ok"}}, {"json": {}}],
         )
-        response = vms.Client.get_vuln(self.client, identifier)
-        self.assertEqual(response, {"ok": "ok"})
-        self.assertRaises(
-            SystemExit, vms.Client.get_vuln, self.client, identifier
-        )
+        response = vms.VMSClient.get_vuln(self.client, identifier)
+        self.assertEqual(response["ok"], "ok")
+        self.assertLogs(level="error")
+
+        response = vms.VMSClient.get_vuln(self.client, identifier)
+        self.assertEqual(response["ok"], "false")
 
     @requests_mock.Mocker()
     def test_get_recent_vulns(self, mock_session):
         mock_session.register_uri(
             "GET",
             f"{self.url}/vpx-api/v1/vulns/recent",
-            [{"json": {"ok": "ok"}}],
+            [
+                {"json": {"ok": "ok"}},
+            ],
         )
 
-        response = vms.Client.get_recent_vulns(self.client, 5)
-        self.assertEqual(response, {"ok": "ok"})
+        response = vms.VMSClient.get_recent_vulns(self.client, 5)
+        self.assertEqual(response["ok"], "ok")
+        self.assertLogs(level="error")
+
+    @requests_mock.Mocker()
+    def test_get_recent_vulns_failed(self, mock_session):
+        mock_session.register_uri(
+            "GET",
+            f"{self.url}/vpx-api/v1/vulns/recent",
+            status_code=404,
+        )
+        response = vms.VMSClient.get_recent_vulns(self.client, 5)
+        self.assertLogs(level="error")
 
     @mock.patch(
-        "vms_client.vms.Client.get_bronco_public_key",
+        "vms_client.vms.VMSClient.get_bronco_public_key",
         return_value="BroncoPublicKey",
     )
     @requests_mock.Mocker()
@@ -179,25 +208,18 @@ class TestVmsClient(unittest.TestCase):
             f"{self.url}/vpx-api/v1/reports/recent",
             [
                 {"json": {"ok": "ok", "data": {"items": {}}}},
+                {"json": {"ok": "ok", "data": {"items": {}}}},
+                {"json": {"ok": "ok", "data": {}}},
                 {"json": {}},
             ],
         )
-        vms.Client.get_recent_reports(self.client, reset)
-
-        self.assertRaises(
-            SystemExit, vms.Client.get_recent_reports, self.client, reset
-        )
+        vms.VMSClient.get_recent_reports(self.client, reset)
 
         mock_session.register_uri(
-            "GET",
-            f"{self.url}/vpx-api/v1/reports/recent",
-            exc=requests.exceptions.ConnectionError,
+            "GET", f"{self.url}/vpx-api/v1/reports/recent", status_code=404
         )
-        self.assertRaises(
-            SystemExit,
-            vms.Client.get_recent_reports,
-            self.client,
-        )
+        vms.VMSClient.get_recent_reports(self.client, reset)
+        self.assertLogs(level="error")
 
         mock_session.register_uri(
             "GET",
@@ -205,15 +227,20 @@ class TestVmsClient(unittest.TestCase):
             json={"ok": "ok"},
         )
 
+        vms.VMSClient.get_recent_reports(self.client)
+        self.assertLogs(level="warning")
+
         self.client.private_key = None
-        self.assertEqual(vms.Client.get_recent_reports(self.client), None)
+        self.assertEqual(
+            vms.VMSClient.get_recent_reports(self.client)["ok"], "ok"
+        )
 
     @mock.patch(
-        "vms_client.vms.Client.get_bronco_public_key",
+        "vms_client.vms.VMSClient.get_bronco_public_key",
         return_value=string.ascii_lowercase,
     )
     @mock.patch(
-        "vms_client.vms.Client.decrypt_bronco_in_report", return_value={}
+        "vms_client.vms.VMSClient.decrypt_bronco_in_report", return_value={}
     )
     @requests_mock.Mocker()
     def test_get_report(
@@ -229,12 +256,20 @@ class TestVmsClient(unittest.TestCase):
             json={"data": {}},
         )
         self.client.private_key = "MyPrivateKey"
-        response = vms.Client.get_report(self.client, identifier)
+        response = vms.VMSClient.get_report(self.client, identifier)
 
         self.assertEqual(response, {"data": {}})
 
+        mock_session.register_uri(
+            "GET",
+            f"{self.url}/vpx-api/v1/report/{identifier}",
+            status_code=404,
+        )
+        vms.VMSClient.get_report(self.client, identifier)
+        self.assertLogs(level="error")
+
     @mock.patch(
-        "vms_client.vms.Client.get_bronco_public_key",
+        "vms_client.vms.VMSClient.get_bronco_public_key",
         return_value=string.ascii_lowercase,
     )
     @requests_mock.Mocker()
@@ -247,23 +282,23 @@ class TestVmsClient(unittest.TestCase):
             [{"status_code": 404}, {"status_code": 201}],
         )
 
-        response = vms.Client.get_report(self.client, identifier)
+        response = vms.VMSClient.get_report(self.client, identifier)
         self.assertEqual(
             response,
             {
-                "msg": f"Couldn't find a report for {identifier}",
-                "status": 404,
-                "data": None,
+                "errmsg": f"404: Couldn't find a report for {identifier}",
+                "ok": "false",
+                "data": {},
             },
         )
 
-        response = vms.Client.get_report(self.client, identifier)
+        response = vms.VMSClient.get_report(self.client, identifier)
         self.assertEqual(
             response,
             {
-                "msg": f"Something went wrong for {identifier}",
-                "status": 201,
-                "data": None,
+                "errmsg": f"201: Couldn't find a report for {identifier}",
+                "ok": "false",
+                "data": {},
             },
         )
 
@@ -275,26 +310,18 @@ class TestVmsClient(unittest.TestCase):
             json={},
         )
 
-        response = vms.Client.get_vulns_by_day(self.client)
+        response = vms.VMSClient.get_vulns_by_day(self.client)
         self.assertEqual(response, {})
 
-    @requests_mock.Mocker()
-    def test_get_vulns_by_day_fail(self, mock_session):
         mock_session.register_uri(
             "GET",
             f"{self.url}/vpx-api/v1/aggr/vulns/by/day",
-            exc=requests.exceptions.ConnectionError,
-        )
-        self.assertRaises(
-            SystemExit,
-            vms.Client.get_vulns_by_day,
-            self.client,
+            status_code=404,
         )
 
-    # @mock.patch(
-    #     "vms_client.vms.nacl",
-    #     return_value=dict(),
-    # )
+        response = vms.VMSClient.get_vulns_by_day(self.client)
+        self.assertLogs(level="error")
+
     @mock.patch(
         "vms_client.vms.b64decode",
         return_value="SomeValue",
@@ -339,14 +366,14 @@ class TestVmsClient(unittest.TestCase):
             ],
         )
 
-        vms.Client.generate_key_pair(self.client)
+        vms.VMSClient.generate_key_pair(self.client)
         self.assertRaises(
             exceptions.InvalidStateError,
-            vms.Client.generate_key_pair,
+            vms.VMSClient.generate_key_pair,
             self.client,
         )
         self.assertRaises(
             exceptions.InvalidStateError,
-            vms.Client.generate_key_pair,
+            vms.VMSClient.generate_key_pair,
             self.client,
         )
