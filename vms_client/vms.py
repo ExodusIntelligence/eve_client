@@ -1,7 +1,6 @@
 import json
 import logging
 from multiprocessing import AuthenticationError
-import os
 
 from asyncio import exceptions
 from base64 import b64decode, b64encode
