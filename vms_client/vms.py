@@ -1,10 +1,13 @@
 import json
 import logging
+from multiprocessing import AuthenticationError
 import os
-import re
+
 from asyncio import exceptions
 from base64 import b64decode, b64encode
 from datetime import datetime, timedelta
+from urllib.parse import urljoin
+from vms_client.helper import verify_email, notify
 
 import dateutil.parser
 import nacl.encoding
@@ -13,29 +16,15 @@ import nacl.utils
 import nacl.exceptions
 import requests
 
-
-def verify_email(email):
-    """Verify email's format.
-
-    Args:
-        email: email address.
-
-    Raises:
-        ValueError: If `email` is not a string.
-        ValueError: If `email` format is invalid.
-
-    Returns:
-        bool: True
-    """
-    regex = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
-    if type(email) is not str:
-        raise ValueError("Email is not a string.")
-    if not re.fullmatch(regex, email):
-        raise ValueError("Invalid email.")
-    return True
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(name)s %(levelname)s: %(message)s",
+    datefmt="%m/%d/%Y %I:%M:%S %p",
+)
+LOG = logging.getLogger("VMS Client")
 
 
-class Client:
+class VMSClient:
     """Class client to communicate with the Exodus API.
 
     This module allows to connect and interact with the
@@ -44,15 +33,15 @@ class Client:
     Example initiate connection:
 
         >>> from vms.client import Client
-        >>> exodus_api = Client('email', 'password', 'private_key')
+        >>> exodus_api = Client('email', 'password', 'private_key', 'url')
 
     Note: See help(Client) for more information.
 
     """
 
-    url = "https://vpx.exodusintel.com/"
-
-    def __init__(self, email, password, key=None) -> None:
+    def __init__(
+        self, email, password, key=None, url="https://vpx.exodusintel.com"
+    ) -> None:
         """Init the Client class.
 
         Args:
@@ -60,16 +49,18 @@ class Client:
             password (str): User password
             key (str, optional): Exodus Intelligence API key. Defaults to None.
         """
-        self.conn_error_msg = "Connection Error while retrieving"
+        self.url = url
+        if not self.url.lower().startswith(
+            "http://"
+        ) and not self.url.lower().startswith("https://"):
+            self.url = "https://" + self.url
+
         if verify_email(email):
             self.email = email
         self.session = requests.Session()
         self.password = password
         self.private_key = key
         self.token = self.get_access_token()
-        logging.basicConfig(
-            format="%(asctime)s %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p"
-        )
 
     def get_access_token(self):
         """Obtain access token.
@@ -81,13 +72,12 @@ class Client:
             str: The token.
         """
         r = self.session.post(
-            self.url + "vpx-api/v1/login",
+            urljoin(self.url, "vpx-api/v1/login"),
             json={"email": self.email, "password": self.password},
         )
         if r.status_code != 200:
-            raise requests.exceptions.ConnectionError(
-                "Could not authenticate!"
-            )
+            notify(r.status_code, LOG.critical, "Authentication problem.")
+            raise requests.exceptions.ConnectionError("Could not authenticate")
         return r.json()["access_token"]
 
     def get_bronco_public_key(self):
@@ -96,15 +86,13 @@ class Client:
         Returns:
             str: A string representation of a public key.
         """
+        key = None
         try:
             key = self.session.get(
-                self.url + "vpx-api/v1/bronco-public-key"
+                urljoin(self.url, "vpx-api/v1/bronco-public-key")
             ).json()["data"]["public_key"]
         except (requests.exceptions.ConnectionError, KeyError) as e:
-            logging.error(
-                f"{self.conn_error_msg} while retrieving Public key - {e}"
-            )
-            os.sys.exit(1)
+            LOG.warning(f"Unable to retrieve the Public key.")
         return key
 
     def decrypt_bronco_in_report(self, report, bronco_public_key):
@@ -127,8 +115,8 @@ class Client:
             )
             plaintext = unseal_box.decrypt(ciphertext, nonce)
         except Exception as e:
-            logging.error(f"{e}. Check your private key.")
-            raise KeyError("Check your Private Key")
+            notify(403, LOG.warning, f"{e}. Verify your private key.")
+            raise KeyError()
         report["bronco"] = json.loads(plaintext)
         return report
 
@@ -137,6 +125,7 @@ class Client:
 
         Args:
             reset (int): Number of days in the past to reset
+            reset (date): A date in ISO8601
 
         Returns:
             datetime:  A date
@@ -150,17 +139,18 @@ class Client:
         try:
             reset = int(reset)
             return datetime.utcnow() - timedelta(days=reset)
-        except ValueError:
+        except ValueError as e:
             pass
 
         # Try to load reset as a ISO8601 datetime
         try:
             reset = dateutil.parser.isoparse(reset)
         except ValueError as e:
-            logging.error(
+            LOG.warning(
                 f"Did not recognize '{reset}' as ISO8601 datetime - {e}"
             )
-            os.sys.exit(1)
+            return None
+        return reset
 
     def get_vuln(self, identifier):
         """Get a Vulnerability by identifier or cve.
@@ -177,13 +167,14 @@ class Client:
         """
         try:
             r = self.session.get(
-                self.url + f"vpx-api/v1/vuln/for/{identifier}"
+                urljoin(self.url, f"vpx-api/v1/vuln/for/{identifier}")
             )
             if r.json()["ok"]:
                 return r.json()
         except (KeyError, requests.exceptions.ConnectionError):
-            logging.error(f"{self.conn_error_msg} {identifier}")
-            os.sys.exit(1)
+            return notify(
+                404, LOG.error, f"Vulnerability {identifier} not found."
+            )
 
     def get_recent_vulns(self, reset=None):
         """Get all vulnerabilities within 60 days of the user's stream marker;\
@@ -194,58 +185,73 @@ class Client:
                 past.
 
         Returns:
-            dict or None: Returns a list of vulnerabilities or None.
+            dict: Returns a list of vulnerabilities.
         """
+        params = {}
+
+        # Int or ISO datetime
         if reset:
             reset = self.handle_reset_option(reset)
 
-        params = {}
+        # If handle_reset_option returned None
         if reset:
             params = {"reset": reset.isoformat()}
 
         r = self.session.get(
-            self.url + "vpx-api/v1/vulns/recent", params=params
+            urljoin(self.url, "vpx-api/v1/vulns/recent"),
+            params=params,
         )
 
+        if r.status_code != 200:
+            return notify(
+                r.status_code,
+                LOG.error,
+                "There was an error retrieving the recent vulnerability list.",
+            )
         return r.json()
 
-    def get_recent_reports(self, reset=1):
+    def get_recent_reports(self, reset=None):
         """Get list of recent reports.
 
         Args:
-            reset (int): Number of days in the past to reset.
+            reset (int): A number of days in the past to reset.
+            reset (date): A date in ISO format
 
         Returns:
-            dict or None: Returns a list of reports or None.
+            dict: Returns a list of reports.
         """
+        params = {}
         if reset:
             reset = self.handle_reset_option(reset)
 
-        params = {}
         if reset:
             reset = reset.isoformat()
             params = {"reset": reset}
-        try:
-            r = self.session.get(
-                self.url + "vpx-api/v1/reports/recent", params=params
+        r = self.session.get(
+            urljoin(self.url, "vpx-api/v1/reports/recent"),
+            params=params,
+        )
+        if r.status_code != 200:
+            return notify(
+                r.status_code,
+                LOG.error,
+                f"Unable to retrieve the recent report list",
             )
-            r = r.json()
-        except requests.exceptions.ConnectionError:
-            logging.error(f"{self.conn_error_msg} recent reports.")
-            os.sys.exit(1)
 
-        try:
-            if self.private_key and r["ok"]:
-                bronco_public_key = self.get_bronco_public_key()
+        r = r.json()
+
+        if self.private_key and r["ok"]:
+            bronco_public_key = self.get_bronco_public_key()
+            try:
                 r["data"]["items"] = [
                     self.decrypt_bronco_in_report(report, bronco_public_key)
                     for report in r["data"]["items"]
                 ]
-                return r
-        except KeyError:
-            logging.error("No Recent Reports")
-            os.sys.exit(1)
-        return None
+            except KeyError as e:
+                notify(421, LOG.warning, "Unable to decrypt report")
+            return r
+
+        return r
 
     def get_report(self, identifier):
         """Get a report by identifier.
@@ -254,27 +260,25 @@ class Client:
             identifier (str): String representation of report id.
 
         Returns:
-            dict or None: Returns either a report in json format or None
+            dict: Returns either a report in json format
         """
-        r = self.session.get(self.url + f"vpx-api/v1/report/{identifier}")
-        if r.status_code == 404:
-            return {
-                "msg": f"Couldn't find a report for {identifier}",
-                "status": r.status_code,
-                "data": None,
-            }
-        elif r.status_code != 200:
-            return {
-                "msg": f"Something went wrong for {identifier}",
-                "status": r.status_code,
-                "data": None,
-            }
-
+        r = self.session.get(
+            urljoin(self.url, f"vpx-api/v1/report/{identifier}")
+        )
+        if r.status_code != 200:
+            return notify(
+                r.status_code,
+                LOG.error,
+                f"Couldn't find a report for {identifier}",
+            )
         r = r.json()
         if self.private_key:
+            # try:
             bronco_public_key = self.get_bronco_public_key()
             self.decrypt_bronco_in_report(r["data"], bronco_public_key)
-
+            # except:
+            #     # let decrypt_bronco_in_report handle the issues
+            #     pass
         return r
 
     def get_vulns_by_day(self):
@@ -283,11 +287,14 @@ class Client:
         Returns:
             dict or None: Returns vulnerabilities list.
         """
-        try:
-            r = self.session.get(self.url + "vpx-api/v1/aggr/vulns/by/day")
-        except requests.exceptions.ConnectionError:
-            logging.error(f"{self.conn_error_msg} vulnerabilities by day.")
-            os.sys.exit(1)
+        r = self.session.get(urljoin(self.url, "vpx-api/v1/aggr/vulns/by/day"))
+
+        if r.status_code != 200:
+            return notify(
+                r.status_code,
+                LOG.error,
+                "Unable to retrieve vulnerabilities by day.",
+            )
         return r.json()
 
     def generate_key_pair(self):
@@ -313,7 +320,7 @@ class Client:
         public_key = secret_key.public_key
         # Propose the public key
         r = self.session.post(
-            self.url + "vpx-api/v1/pubkey",
+            urljoin(self.url, "vpx-api/v1/pubkey"),
             headers={"X-CSRF-TOKEN": csrf_token},
             json={
                 "key": public_key.encode(nacl.encoding.Base64Encoder).decode(
@@ -333,7 +340,7 @@ class Client:
         unseal_box = nacl.public.SealedBox(secret_key)
         challenge_response = unseal_box.decrypt(challenge)
         r = self.session.post(
-            self.url + "vpx-api/v1/pubkey",
+            urljoin(self.url, "vpx-api/v1/pubkey"),
             headers={"X-CSRF-TOKEN": csrf_token},
             json={
                 "challenge_response": b64encode(challenge_response).decode(
