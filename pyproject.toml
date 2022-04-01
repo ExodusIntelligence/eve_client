@@ -42,7 +42,7 @@ exclude = '''
 
 [tool.isort]
 # make it compatible with black
-profile = "black" 
+profile = "black"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

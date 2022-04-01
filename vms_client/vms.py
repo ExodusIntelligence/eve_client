@@ -1,19 +1,18 @@
 import json
 import logging
-from multiprocessing import AuthenticationError
-
 from asyncio import exceptions
 from base64 import b64decode, b64encode
 from datetime import datetime, timedelta
 from urllib.parse import urljoin
-from vms_client.helper import verify_email, notify
 
 import dateutil.parser
 import nacl.encoding
+import nacl.exceptions
 import nacl.public
 import nacl.utils
-import nacl.exceptions
 import requests
+
+from vms_client.helper import notify, verify_email
 
 logging.basicConfig(
     level=logging.INFO,
@@ -90,8 +89,8 @@ class VMSClient:
             key = self.session.get(
                 urljoin(self.url, "vpx-api/v1/bronco-public-key")
             ).json()["data"]["public_key"]
-        except (requests.exceptions.ConnectionError, KeyError) as e:
-            LOG.warning(f"Unable to retrieve the Public key.")
+        except (requests.exceptions.ConnectionError, KeyError):
+            LOG.warning("Unable to retrieve the Public key.")
         return key
 
     def decrypt_bronco_in_report(self, report, bronco_public_key):
@@ -138,7 +137,7 @@ class VMSClient:
         try:
             reset = int(reset)
             return datetime.utcnow() - timedelta(days=reset)
-        except ValueError as e:
+        except ValueError:
             pass
 
         # Try to load reset as a ISO8601 datetime
@@ -234,7 +233,7 @@ class VMSClient:
             return notify(
                 r.status_code,
                 LOG.error,
-                f"Unable to retrieve the recent report list",
+                "Unable to retrieve the recent report list",
             )
 
         r = r.json()
@@ -246,7 +245,7 @@ class VMSClient:
                     self.decrypt_bronco_in_report(report, bronco_public_key)
                     for report in r["data"]["items"]
                 ]
-            except KeyError as e:
+            except KeyError:
                 notify(421, LOG.warning, "Unable to decrypt report")
             return r
 

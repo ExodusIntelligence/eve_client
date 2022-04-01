@@ -3,12 +3,11 @@ import string
 import unittest
 from asyncio import exceptions
 from unittest import mock
-from more_itertools import side_effect
 
 import requests
 import requests_mock
 
-from vms_client import vms, __version__
+from vms_client import __version__, vms
 
 
 class TestVMSClient(unittest.TestCase):
@@ -32,7 +31,7 @@ class TestVMSClient(unittest.TestCase):
             "vms_client.vms.VMSClient.get_access_token",
             return_value="-access_token-",
         ) as _:
-            client = vms.VMSClient(
+            vms.VMSClient(
                 self.email, self.password, self.private_key, url
             )
 
@@ -150,7 +149,7 @@ class TestVMSClient(unittest.TestCase):
 
     def test_handle_reset_option_logs(self):
         reset = "2022-10-DD"
-        response = vms.VMSClient.handle_reset_option(self.client, reset)
+        vms.VMSClient.handle_reset_option(self.client, reset)
         self.assertLogs(level="warning")
 
     @requests_mock.Mocker()
@@ -189,7 +188,7 @@ class TestVMSClient(unittest.TestCase):
             f"{self.url}/vpx-api/v1/vulns/recent",
             status_code=404,
         )
-        response = vms.VMSClient.get_recent_vulns(self.client, 5)
+        vms.VMSClient.get_recent_vulns(self.client, 5)
         self.assertLogs(level="error")
 
     @mock.patch(
