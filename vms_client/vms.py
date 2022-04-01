@@ -30,8 +30,8 @@ class VMSClient:
 
     Example initiate connection:
 
-        >>> from vms.client import Client
-        >>> exodus_api = Client('email', 'password', 'private_key', 'url')
+        >>> from vms_client import vms
+        >>> exodus_api = vms.Client('email', 'password', 'private_key', 'url')
 
     Note: See help(Client) for more information.
 
