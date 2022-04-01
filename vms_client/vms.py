@@ -160,8 +160,7 @@ class VMSClient:
             identifier (str): String representation of vulnerability id.
 
         Returns:
-            dict or exception: Returns either a report in json format or
-            an exception
+            dict: Returns a report in json format
         """
         try:
             r = self.session.get(
@@ -283,7 +282,7 @@ class VMSClient:
         """Get vulnerabilities by day.
 
         Returns:
-            dict or None: Returns vulnerabilities list.
+            dict: Returns vulnerabilities list.
         """
         r = self.session.get(urljoin(self.url, "vpx-api/v1/aggr/vulns/by/day"))
 
