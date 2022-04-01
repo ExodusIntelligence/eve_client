@@ -135,7 +135,7 @@ class VMSClient:
         # First, try to load reset as an integer indicating the number of days
         # in the past to reset to
         try:
-            reset = int(reset)
+            reset = abs(int(reset))
             return datetime.utcnow() - timedelta(days=reset)
         except ValueError:
             pass
