@@ -6,7 +6,7 @@ def notify(status, loglevel, msg):
     return {
         "data": {},
         "errmsg": f"{status}: {msg}",
-        "ok": "false",
+        "ok": False,
     }
 
 
