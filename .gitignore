@@ -7,3 +7,4 @@ poetry.lock
 .vscode
 .coverage
 .flake8
+.demisto-sdk-report
