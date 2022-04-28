@@ -2,7 +2,6 @@ import re
 
 
 def notify(status, loglevel, msg):
-    loglevel(msg)
     return {
         "data": {},
         "errmsg": f"{status}: {msg}",
