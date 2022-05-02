@@ -15,7 +15,6 @@ import requests
 from vms_client.helper import notify, verify_email
 
 logging.basicConfig(
-    level=logging.INFO,
     format="%(asctime)s %(name)s %(levelname)s: %(message)s",
     datefmt="%m/%d/%Y %I:%M:%S %p",
 )
@@ -74,7 +73,7 @@ class VMSClient:
             json={"email": self.email, "password": self.password},
         )
         if r.status_code != 200:
-            notify(r.status_code, LOG.critical, "Authentication problem.")
+            notify(r.status_code, "Authentication problem.")
             raise requests.exceptions.ConnectionError("Could not authenticate")
         return r.json()["access_token"]
 
@@ -113,7 +112,7 @@ class VMSClient:
             )
             plaintext = unseal_box.decrypt(ciphertext, nonce)
         except Exception as e:
-            notify(403, LOG.warning, f"{e}. Verify your private key.")
+            notify(403, f"{e}. Verify your private key.")
             raise KeyError()
         report["bronco"] = json.loads(plaintext)
         return report
@@ -170,7 +169,7 @@ class VMSClient:
                 return r.json()
         except (KeyError, requests.exceptions.ConnectionError):
             return notify(
-                404, LOG.error, f"Vulnerability {identifier} not found."
+                404, f"Vulnerability {identifier} not found."
             )
 
     def get_recent_vulns(self, reset=None):
@@ -202,7 +201,6 @@ class VMSClient:
         if r.status_code != 200:
             return notify(
                 r.status_code,
-                LOG.error,
                 "There was an error retrieving the recent vulnerability list.",
             )
         return r.json()
@@ -231,7 +229,6 @@ class VMSClient:
         if r.status_code != 200:
             return notify(
                 r.status_code,
-                LOG.error,
                 "Unable to retrieve the recent report list",
             )
 
@@ -245,7 +242,7 @@ class VMSClient:
                     for report in r["data"]["items"]
                 ]
             except KeyError:
-                notify(421, LOG.warning, "Unable to decrypt report")
+                notify(421, "Unable to decrypt report")
             return r
 
         return r
@@ -265,7 +262,6 @@ class VMSClient:
         if r.status_code != 200:
             return notify(
                 r.status_code,
-                LOG.error,
                 f"Couldn't find a report for {identifier}",
             )
         r = r.json()
@@ -289,7 +285,6 @@ class VMSClient:
         if r.status_code != 200:
             return notify(
                 r.status_code,
-                LOG.error,
                 "Unable to retrieve vulnerabilities by day.",
             )
         return r.json()
