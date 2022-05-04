@@ -1,3 +1,3 @@
 import importlib.metadata
 
-__version__ = importlib.metadata.version("vms_client")
+__version__ = importlib.metadata.version("eve_client")

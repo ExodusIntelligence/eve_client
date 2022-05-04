@@ -11,7 +11,6 @@ import nacl.exceptions
 import nacl.public
 import nacl.utils
 import requests
-
 from vms_client.helper import notify, verify_email
 
 logging.basicConfig(
