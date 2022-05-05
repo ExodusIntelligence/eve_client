@@ -23,7 +23,7 @@ class TestEVEClient(unittest.TestCase):
         client = eve.EVEClient(email, password, private_key)
 
     def test_version(self):
-        self.assertEqual(__version__, "1.0.0rc1")
+        self.assertEqual(__version__, "1.0.1-alpha.1")
 
     def test_url(self):
         url = "vpx.exodusintel.com"
@@ -165,7 +165,7 @@ class TestEVEClient(unittest.TestCase):
         self.assertLogs(level="error")
 
         response = eve.EVEClient.get_vuln(self.client, identifier)
-        self.assertEqual(response["ok"], "false")
+        self.assertEqual(response["ok"], False)
 
     @requests_mock.Mocker()
     def test_get_recent_vulns(self, mock_session):
@@ -286,7 +286,7 @@ class TestEVEClient(unittest.TestCase):
             response,
             {
                 "errmsg": f"404: Couldn't find a report for {identifier}",
-                "ok": "false",
+                "ok": False,
                 "data": {},
             },
         )
@@ -296,7 +296,7 @@ class TestEVEClient(unittest.TestCase):
             response,
             {
                 "errmsg": f"201: Couldn't find a report for {identifier}",
-                "ok": "false",
+                "ok": False,
                 "data": {},
             },
         )
