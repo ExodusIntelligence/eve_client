@@ -11,33 +11,33 @@ An Exodus Intelligence Account is required. Visit https://vpx.exodusintel.com to
 Installation via pip (binary):
 
 ```bash
-$ pip install vms_client-1.0.0c1-py3-none-any.whl
+$ pip install eve_client-1.0.0c1-py3-none-any.whl
 ```
 [//]: # (Installation from binary: [TODO])
 [//]: # ()
 [//]: # (Download the wheel file from <here>:)
 [//]: # ()
 [//]: # (```bash)
-[//]: # ($ pip install exodus_vms.whl)
+[//]: # ($ pip install exodus_eve.whl)
 [//]: # (```)
 [//]: # ()
 [//]: # (Installation from source:)
 [//]: # ()
 [//]: # (```bash)
 [//]: # ($ git clone url)
-[//]: # ($ cd vms)
+[//]: # ($ cd eve)
 [//]: # ($ pip install -r requirements.txt)
 [//]: # (```)
 
 ## Usage
 
 ```python
->>> from vms_client import vms
+>>> from eve_client import eve
 >>> email = "myemail@provider.com"
 >>> password = "abc123"
 >>> key = "My_Exodus_Intelligence_API_Key"
->>> vms = vms.VMSClient(email, password, key)
->>> vms.get_recent_vulns()['data']['items'][0]
+>>> eve = eve.EVEClient(email, password, key)
+>>> eve.get_recent_vulns()['data']['items'][0]
 >>> {'access_vector': '...',
      'attack_vector': ...,
      'cpes': ...,
@@ -56,7 +56,7 @@ $ pip install vms_client-1.0.0c1-py3-none-any.whl
      'zdis': ...}
 >>>
 ```
-## vms_client Classes and Functions
+## eve_client Classes and Functions
 
 ### Classes
 [//]: # (    builtins.object)
@@ -72,8 +72,8 @@ This class includes methods for requesting vulnerabilities and reports from the 
 
 Example of connection initiation:
 
-    >>> from vms_client import vms
-    >>> exodus_api = vms.VMSClient('email', 'password', 'private_key')
+    >>> from eve_client import eve
+    >>> exodus_api = eve.EVEClient('email', 'password', 'private_key')
 
 Note: See `help(Client)` for more information.
 

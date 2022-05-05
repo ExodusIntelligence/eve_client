@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "EVE"
+name = "EVE API Client"
 version = "1.0.0rc1"
 description = "EVE API client from Exodus Intelligence LLC."
 authors = ["DevTeam <dev@exodusintel.com>"]

@@ -1,3 +1,3 @@
-import importlib.metadata
+from importlib.metadata import version
 
-__version__ = importlib.metadata.version("eve_client")
+__version__ = version("eve_client")

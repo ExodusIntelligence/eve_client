@@ -11,16 +11,17 @@ import nacl.exceptions
 import nacl.public
 import nacl.utils
 import requests
-from vms_client.helper import notify, verify_email
+
+from eve_client.helper import notify, verify_email
 
 logging.basicConfig(
     format="%(asctime)s %(name)s %(levelname)s: %(message)s",
     datefmt="%m/%d/%Y %I:%M:%S %p",
 )
-LOG = logging.getLogger("VMS Client")
+LOG = logging.getLogger("EVE Client")
 
 
-class VMSClient:
+class EVEClient:
     """Class client to communicate with the Exodus API.
 
     This module allows to connect and interact with the
@@ -28,10 +29,13 @@ class VMSClient:
 
     Example initiate connection:
 
-        >>> from vms_client import vms
-        >>> exodus_api = vms.Client('email', 'password', 'private_key', 'url')
+        >>> from eve_client import eve
+        >>> exodus_api = eve.EVEClient( 'email',
+                                        'password',
+                                        'private_key',
+                                        'url')
 
-    Note: See help(Client) for more information.
+    Note: See help(EVEClient) for more information.
 
     """
 
