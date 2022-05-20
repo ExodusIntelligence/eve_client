@@ -2,7 +2,7 @@
 name = "eve_client"
 version = "1.0.0"
 description = "EVE API client from Exodus Intelligence LLC."
-authors = ["DevTeam <dev@exodusintel.com>"]
+authors = ["Exodus Intelligence LLC <eng@exodusintel.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
