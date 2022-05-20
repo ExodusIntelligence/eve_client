@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "vms_client"
-version = "1.0.0rc1"
-description = "VMS client for Exodus Intelligence's API."
+name = "eve_client"
+version = "1.0.1-alpha.1"
+description = "EVE API client from Exodus Intelligence LLC."
 authors = ["DevTeam <dev@exodusintel.com>"]
 
 [tool.poetry.dependencies]
