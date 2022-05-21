@@ -1,7 +1,10 @@
 [tool.poetry]
 name = "eve_client"
-version = "1.0.0"
+version = "1.0.1"
 description = "EVE API client from Exodus Intelligence LLC."
+readme = "README.md"
+license = "BSD-3-Clause"
+repository = "https://github.com/ExodusIntelligence/eve_client"
 authors = ["Exodus Intelligence LLC <eng@exodusintel.com>"]
 
 [tool.poetry.dependencies]
