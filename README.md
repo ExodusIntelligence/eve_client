@@ -62,9 +62,9 @@ $ pip install eve-client
 [//]: # (    builtins.object)
 [//]: # (        Client)
 
-#### class Client(builtins.object)
+#### class EVEClient(builtins.object)
 
-`Client(email, password, key=None) -> None`
+`EVEClient(email, password, key=None) -> None`
 
 An object that communicates with the Exodus API.
 
@@ -75,7 +75,7 @@ Example of connection initiation:
     >>> from eve_client import eve
     >>> exodus_api = eve.EVEClient('email', 'password', 'private_key')
 
-Note: See `help(Client)` for more information.
+Note: See `help(EVEClient)` for more information.
 
 ##### Methods
 
