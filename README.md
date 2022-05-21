@@ -11,7 +11,7 @@ An Exodus Intelligence Account is required. Visit https://vpx.exodusintel.com to
 Installation via pip (binary):
 
 ```bash
-$ pip install eve_client-1.0.0c1-py3-none-any.whl
+$ pip install eve-client
 ```
 [//]: # (Installation from binary: [TODO])
 [//]: # ()
