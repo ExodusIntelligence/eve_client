@@ -4,30 +4,15 @@
 
 An Exodus Intelligence Account is required. Visit https://vpx.exodusintel.com to obtain an account.
 
-[Python](https://www.python.org/downloads/) 3.8 or newer is required.
+[Python](https://www.python.org/downloads/) 3.7 or newer is required.
 &nbsp;
 ## Getting started
 
-Installation via pip (binary):
+Installation via pip:
 
 ```bash
 $ pip install eve-client
 ```
-[//]: # (Installation from binary: [TODO])
-[//]: # ()
-[//]: # (Download the wheel file from <here>:)
-[//]: # ()
-[//]: # (```bash)
-[//]: # ($ pip install exodus_eve.whl)
-[//]: # (```)
-[//]: # ()
-[//]: # (Installation from source:)
-[//]: # ()
-[//]: # (```bash)
-[//]: # ($ git clone url)
-[//]: # ($ cd eve)
-[//]: # ($ pip install -r requirements.txt)
-[//]: # (```)
 
 ## Usage
 
