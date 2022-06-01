@@ -1,6 +1,5 @@
 import json
 import logging
-from asyncio import exceptions
 from base64 import b64decode, b64encode
 from datetime import datetime, timedelta
 from urllib.parse import urljoin
@@ -325,7 +324,7 @@ class EVEClient:
         )
 
         if r.status_code != 200:
-            raise exceptions.InvalidStateError(
+            raise requests.exceptions.ConnectionError(
                 f"Couldn't set public key, status code {r.status_code}"
             )
 
@@ -344,7 +343,7 @@ class EVEClient:
             },
         )
         if r.status_code != 200:
-            raise exceptions.InvalidStateError(
+            raise requests.exceptions.ConnectionError(
                 f"Couldn't confirm public key, status code {r.status_code}"
             )
 
