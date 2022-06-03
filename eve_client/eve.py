@@ -24,7 +24,7 @@ class EVEClient:
     """Class client to communicate with the Exodus API.
 
     This module allows to connect and interact with the
-    Exodus Intelligence API.
+    Exodus Intelligence API..
 
     Example initiate connection:
 
